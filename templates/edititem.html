@@ -1,0 +1,81 @@
+{% extends "layout-form.html" %}
+{% block content %}
+
+<h1>Edit Item</h1>
+<form class="form-horizontal" role="form" action="{{ url_for('editCatalogItem', item_id=item.id)}}" method='post' enctype="multipart/form-data">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+        <label class="control-label col-sm-2" for="project_title">Project Title:</label>
+        <div class="col-sm-10">
+            <input type="text" class="form-control" id="project_title" name="project_title" value="{{item.project_title}}" />
+        </div>
+    </div>
+        <div class="form-group">
+            <label class="control-label col-sm-2" for="category">Category:</label>
+            <div class="col-sm-10">
+                <select id="category" name="category" class="form-control">
+                {% for c in categories %}
+                    {% if c.id == item.category_id %}
+                        <option value="{{c.id}}" selected>{{c.name}}</option>
+                    {% else %}
+                        <option value="{{c.id}}">{{c.name}}</option>
+                    {% endif %}
+                {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-sm-2" for="client">Client Name:</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="client" name="client" value="{{item.client}}"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-sm-2" for="project_value">Project Value ($):</label>
+                <div class="col-sm-10">
+                    <input type="numeric" class="form-control" id="project_value" name="project_value" value="{{item.project_value}}"/>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-sm-2" for="completed_date">Completed Date:</label>
+                    <div class="col-sm-10">
+                        <div class='input-group date' id='datetimepicker1'>
+                            <input type='text' class="form-control" id="completed_date" name="completed_date" value="{{item.completed_date.strftime('%d/%m/%Y')}}"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-sm-2" for="description">Project Description:</label>
+                    <div class="col-sm-10">
+                        <textarea id="description" name="description" class="form-control" rows="10">{{item.description}}</textarea>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-sm-2" for="files">Photos:</label>
+                    <div class="col-sm-10">
+                        <div class="radio">
+                          <label><input type="radio" name="photooption" value="keep" checked="checked">Keep Existing</label>
+                        </div>
+                        <div class="radio">
+                          <label><input type="radio" name="photooption" value="replace">Replace Photos</label>
+                        </div>
+                        <input type="file" multiple="" id="files" name="files[]" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button type="submit" class="btn btn-default">Submit</button>
+                    </div>
+                </div>
+            </form>
+            <script type="text/javascript">
+            $(function () {
+                $('.input-group.date').datepicker({
+                    format: "dd/mm/yyyy"
+                });
+            });
+            </script>
+{% endblock %}
