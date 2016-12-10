@@ -12,14 +12,14 @@ This apps uses Google  as authentication & authorization service.
     Setup database, initialize database with categories:
 
     python database_setup.py
-    python insertitems.py
+    python insert_categories.py
 
-    Replace your Google client secrets in clientsecrets_google.json
+    Replace your Google client secrets in client_secrets.json
 
     NOTE: You must configure your Google app correctly
 
     Now you can run the application:
 
-    python application.py
+    python project.py
 
-    Go to your browser an type localhost:8000
+    Go to your browser an type localhost:5000

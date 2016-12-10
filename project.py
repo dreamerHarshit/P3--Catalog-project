@@ -25,7 +25,7 @@ UPLOAD_FOLDER = 'images/'
 ALLOWED_EXTENSIONS = set(['png','jpg', 'gif'])
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-engine = create_engine('sqlite:///catlog.db')
+engine = create_engine('sqlite:///catalog.db')
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
@@ -58,19 +58,19 @@ def getUserID(email):
 @app.route('/login')
 def showLogin():
 	"""Route for rendering login screen"""
-	state = ''.join(random.choice)(
-		string.ascii_uppercase + string.digits 
-		for x in range(32))
+	state = ''.join(random.choice(string.ascii_uppercase + string.digits)
+		for x in xrange(32))
 	login_session['state'] = state
 	return render_template("login.html",STATE=state)
 
+@app.route('/gconnect', methods=['POST'])
 def gconnect():
 	"""coonection using google+"""
 	code = request.data
-	auth_config = json.loads(open('client_secrets_google.json','r').read())['web']
+	auth_config = json.loads(open('client_secret.json','r').read())['web']
 
 	try:
-		oauth_flow =flow_from_clientsecrets('client_secrets_google.json',scpoe='')
+		oauth_flow =flow_from_clientsecrets('client_secrets_google.json',scope='')
 		oauth_flow.redirect_uri = 'postmessage'
 		credentials = oauth_flow.step2_exchange(code)
 	except FlowExchangeError:
@@ -165,7 +165,7 @@ def disconnect():
     return redirect(url_for('home'))        
 
 #create a json of category
-@app.route('/catlog.json')
+@app.route('/catalog.json')
 def CategoryJSON():
 	category = session.query(Category).all()
 	categories = []
