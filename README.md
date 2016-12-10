@@ -14,8 +14,7 @@ This apps uses Google  as authentication & authorization service.
     python database_setup.py
     python insertitems.py
 
-    Replace your client secrets for Facebook and Google sing in:
-        Replace your Google client secrets in clientsecrets_google.json
+    Replace your Google client secrets in clientsecrets_google.json
 
     NOTE: You must configure your Google app correctly
 
