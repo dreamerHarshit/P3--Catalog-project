@@ -7,7 +7,7 @@ Authentication & Authorization
 This apps uses Google  as authentication & authorization service.
 ##Run
 
-    Clone this repository and log in the virtual machine with this commands:
+    Clone this repository and  in the virtual machine environment:
 
     Setup database, initialize database with categories:
 
