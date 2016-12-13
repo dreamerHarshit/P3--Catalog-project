@@ -65,64 +65,66 @@ def showLogin():
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
-	"""coonection using google+"""
-	code = request.data
-	auth_config = json.loads(open('client_secret.json','r').read())['web']
+    """coonection using google+"""
+    code = request.data
+    auth_config = json.loads(open('client_secret.json','r').read())['web']
 
-	try:
-		oauth_flow =flow_from_clientsecrets('client_secrets_google.json',scope='')
-		oauth_flow.redirect_uri = 'postmessage'
-		credentials = oauth_flow.step2_exchange(code)
-	except FlowExchangeError:
-		response = make_response(json.dumps('Failed to upgrade the authorization code.'),401)
-		response.headers['Content-Type'] = 'application/json'
-		return response
+    try:
+        oauth_flow =flow_from_clientsecrets('client_secret.json',scope='')
+        oauth_flow.redirect_uri = 'postmessage'
+        credentials = oauth_flow.step2_exchange(code)
+    except FlowExchangeError:
+        response = make_response(json.dumps('Failed to upgrade the authorization code.'),401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
-	access_token = credentials.access_token
-	url = (auth_config['access_token_uri']
+    access_token = credentials.access_token
+    url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
            % access_token)
-	h = httplib2.Http()
-	result = json.loads(h.request(url, 'GET')[1])
-	if result.get('error') is not None:
-		response = make_response(json.dumps(result.get('error')), 500)
-		response.headers['Content-Type'] = 'application/json'
-		return response
-	gplus_id = credentials.id_token['sub']
-	# Verify user id's match
-	if result['user_id'] != gplus_id:
-		response = make_response(json.dumps("Token's user_id doesn't match \given user ID"), 401)
-		response.headers['Content-Type'] = 'application/json'
-		return response
-	# verify that the access token is valid for this app
-	if result['issued_to'] != auth_config['client_id']:
-		response = make_response(json.dumps("Token's client id doesn't \match apps"), 401)
-		response.headers['Content-Type'] = 'application/json'
-		return response
-	# Check to see if user is already logged in
-	stored_credentials = login_session.get('credentials')
-	stored_gplus_id = login_session.get('gplus_id')
-	if stored_credentials is not None and gplus_id == stored_gplus_id:
-		response = make_response(
-			json.dumps('Current user is already connected'), 200)
-		response.headers['Content-Type'] = 'application/json'
-		return response
+    h = httplib2.Http()
+    result = json.loads(h.request(url, 'GET')[1])
+    if result.get('error') is not None:
+        response = make_response(json.dumps(result.get('error')), 500)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    gplus_id = credentials.id_token['sub']
+    # Verify user id's match
+    if result['user_id'] != gplus_id:
+        response = make_response(json.dumps("Token's user_id doesn't match \given user ID"), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    # verify that the access token is valid for this app
+    if result['issued_to'] != auth_config['client_id']:
+        response = make_response(json.dumps("Token's client id doesn't \match apps"), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    # Check to see if user is already logged in
+    stored_credentials = login_session.get('credentials')
+    stored_gplus_id = login_session.get('gplus_id')
+    if stored_credentials is not None and gplus_id == stored_gplus_id:
+        response = make_response(
+            json.dumps('Current user is already connected'), 200)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
-	# store the access token in the session for later use
-	login_session['credentials'] = credentials.access_token
-	login_session['gplus_id'] = gplus_id
-	
-	# get user info
-	userinfo_url = auth_config["userinfo_url"]
-	params = {'access_token': credentials.access_token, 'alt': 'json'}
-	answer = requests.get(userinfo_url, params=params)
+    # store the access token in the session for later use
+    login_session['credentials'] = credentials.access_token
+    login_session['gplus_id'] = gplus_id
+    
+    # get user info
+    userinfo_url = 'https://www.googleapis.com/oauth2/v1/userinfo'
+    userinfo_url = auth_config["userinfo_url"]
+    params = {'access_token': credentials.access_token, 'alt': 'json'}
+    answer = requests.get(userinfo_url, params=params)
 
-	data = answer.json()
-	login_session['username'] = data['name']
-	login_session['picture'] = data['picture']
-	login_session['email'] = data['email']
-	login_session['provider'] = "google"
-	return "success"
-	
+    data = answer.json()
+    login_session['username'] = data['name']
+    login_session['picture'] = data['picture']
+    login_session['email'] = data['email']
+    login_session['provider'] = "google"
+    return "success"
+
+
 def gdisconnect():
     """Disconnect method for logging out of Google+
     """
@@ -151,9 +153,6 @@ def disconnect():
             gdisconnect()
             del login_session['gplus_id']
             del login_session['credentials']
-        if login_session['provider'] == 'facebook':
-            fbdisconnect()
-            del login_session['facebook_id']
         del login_session['username']
         del login_session['email']
         del login_session['picture']
