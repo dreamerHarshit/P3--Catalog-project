@@ -1,11 +1,13 @@
 import json
 import httplib2
 import requests
-import string,random
+import string
+import random
 import os
 from sqlalchemy import create_engine, asc, desc, func
 from sqlalchemy.orm import sessionmaker
-from flask import Flask, url_for, session, redirect, request, render_template, flash
+from flask import Flask, url_for, session
+from flask import redirect, request, render_template, flash
 from flask import jsonify, make_response, send_from_directory
 from database_setup import Base, Category, Item, User
 from oauth2client.client import flow_from_clientsecrets
@@ -18,11 +20,12 @@ app = Flask(__name__)
 credentials = {}
 token_info = {}
 
-CLIENT_ID = json.loads(open('client_secret.json','r').read())['web']['client_id']
+CLIENT_ID = json.loads(open('client_secret.json',
+    'r').read())['web']['client_id']
 # This is the path to the uploads
 UPLOAD_FOLDER = 'images/'
 # Extension we are accepting to be uploaded
-ALLOWED_EXTENSIONS = set(['png','jpg', 'gif'])
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'gif'])
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 engine = create_engine('sqlite:///catalog.db')
@@ -32,19 +35,21 @@ session = DBSession()
 
 
 def createUser(login_session):
-	newuser = User(
-		name = login_session['username'],
-		email = login_session['email'],
+    newuser = User(
+        name = login_session['username'],
+        email = login_session['email'],
 		picture = login_session['picture'])
 	session.add(newuser)
 	session.commit()
 	user = session.query(User).filter_by(email=login_session['email']).one()
 	return user.id
 
+
 def getuserInfo(useri_d):
 		"""gets user based on user_id"""
 		user = session.query(User).filter_by(id=user_id).one()
 		return user
+
 
 def getUserID(email):
 	"""get user_id by email address"""
@@ -55,13 +60,16 @@ def getUserID(email):
 		return None
 #Create a state token to prevent request forgery.
 #Store it in the session for later validation.
+
+
 @app.route('/login')
 def showLogin():
 	"""Route for rendering login screen"""
 	state = ''.join(random.choice(string.ascii_uppercase + string.digits)
 		for x in xrange(32))
 	login_session['state'] = state
-	return render_template("login.html",STATE=state)
+	return render_template("login.html", STATE=state)
+
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
@@ -70,7 +78,7 @@ def gconnect():
     auth_config = json.loads(open('client_secret.json','r').read())['web']
 
     try:
-        oauth_flow =flow_from_clientsecrets('client_secret.json',scope='')
+        oauth_flow =flow_from_clientsecrets('client_secret.json', scope='')
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(code)
     except FlowExchangeError:
@@ -163,10 +171,11 @@ def disconnect():
         flash("You were not logged in")
     return redirect(url_for('home'))        
 
-#create a json of category
+
 @app.route('/catalog.json')
 def CategoryJSON():
-	category = session.query(Category).all()
+    """create a json of category"""
+    category = session.query(Category).all()
 	categories = []
 	for c in category:
 		cat = c.serialize
@@ -178,20 +187,22 @@ def CategoryJSON():
 		categories.append(cat)
 	return jsonify(Categories = categories)
 
-#Show all Categories and latest items
+
 @app.route('/')
 def showCatalog():
+    """Show all Categories and latest items"""
 	categories = session.query(Category).order_by(asc(Category.id))
 	items = session.query(Item).order_by(desc(Item.id))
 	catDict = {}
 	for cat in categories:
 		catDict[cat.id] = cat.name
-	return render_template('catalog.html',categories=categories, items=items, catDict=catDict)
+	return render_template('catalog.html', 
+        categories=categories, items=items, catDict=catDict)
 
 
-# Handler to Show all items for a Category
 @app.route('/catalog/<category_name>/items/')
 def showItems(category_name):
+    """Handler to Show all items for a Category"""
     category_name = category_name.replace('%20', ' ')
     categories = session.query(Category).order_by(asc(Category.name))
     category = session.query(Category).filter_by(name=category_name).one()
@@ -200,20 +211,22 @@ def showItems(category_name):
     itemCount = len(items)
     return render_template('items.html', items=items, category=category, itemCount=itemCount, categories=categories)
 
-#Handler to Show a Category menu
+
 @app.route('/catalog/<category_name>/<item_name>/')
 def showItem(item_name, category_name):
+    """Handler to Show a Category menu"""
     item_name = item_name.replace('%20', ' ')
     category_name = category_name.replace('%20', ' ')
     print category_name
     category = session.query(Category).filter_by(name=category_name).one()
     item = session.query(Item).filter_by(name=item_name, category_id=category.id).one()
-    creator = getUserInfo(item.user_id)
+    creator = getuserInfo(item.user_id)
     return render_template('display_item.html', item=item, category=category, creator=creator)
 
-#Handler to Create a new menu item
+
 @app.route('/catalog/new/', methods=['GET', 'POST'])
 def newItem():
+    """Handler to Create a new menu item"""
     if 'username' not in login_session:
         return redirect('/login')
     elif request.method == 'POST':
@@ -227,9 +240,10 @@ def newItem():
         categories = session.query(Category).order_by(asc(Category.name))
         return render_template('item_new.html', categories=categories)
 
-#Handler to Edit a menu item
+
 @app.route('/catalog/<category_name>/<item_name>/edit', methods=['GET', 'POST'])
 def editItem(item_name, category_name):
+    """Handler to Edit a menu item"""
     if 'username' not in login_session:
         return redirect('/login')
     item_name = item_name.replace('%20', ' ')
@@ -251,12 +265,12 @@ def editItem(item_name, category_name):
         flash('Item Successfully Edited')
         return redirect(url_for('showCatalog'))
     else:
-        return render_template('item_edit.html', category_name=category_name,item=editedItem, categories=categories)
+        return render_template('item_edit.html', category_name=category_name, item=editedItem, categories=categories)
 
 
-#Handler to Delete a menu item
 @app.route('/catalog/<category_name>/<item_name>/delete', methods=['GET', 'POST'])
 def deleteItem(item_name, category_name):
+    """Handler to Delete a menu item"""
     if 'username' not in login_session:
         return redirect('/login')
     item_name = item_name.replace('%20', ' ')
@@ -271,7 +285,8 @@ def deleteItem(item_name, category_name):
         flash('Item Deleted Successfully!')
         return redirect('/')
     else:
-        return render_template('item_delete.html', item=itemToDelete, category_name=category_name)
+        return render_template('item_delete.html',
+            item=itemToDelete, category_name=category_name)
 
 if __name__ == '__main__':
     app.debug = True
