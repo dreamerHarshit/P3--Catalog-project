@@ -196,9 +196,9 @@ def CategoryJSON():
 
 
 @app.route('/catalog/<category_id>/<item_id>/JSON')
-def ItemJSON():
-    """JSON for aritrary item"""
-    category = session.query(Category).filter_by(category_id).one()
+def ItemJSON(category_id, item_id):
+    """JSON for arbitrary item"""
+    category = session.query(Category).filter_by(id = category_id).one()
     items = session.query(Item).filter_by(category_id=category_id).all()
     return jsonify(Items=[i.serialize for i in items])
 
