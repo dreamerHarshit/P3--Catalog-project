@@ -35,17 +35,14 @@ session = DBSession()
 
 
 def createUser(login_session):
-    newuser = User(
-        name = login_session['username'],
-        email = login_session['email'],
-		picture = login_session['picture'])
-	session.add(newuser)
-	session.commit()
-	user = session.query(User).filter_by(email=login_session['email']).one()
-	return user.id
+    newuser = User(name = login_session['username'],email = login_session['email'],picture = login_session['picture'])
+    session.add(newuser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    return user.id
 
 
-def getuserInfo(useri_d):
+def getuserInfo(user_id):
 		"""gets user based on user_id"""
 		user = session.query(User).filter_by(id=user_id).one()
 		return user
@@ -176,27 +173,34 @@ def disconnect():
 def CategoryJSON():
     """create a json of category"""
     category = session.query(Category).all()
-	categories = []
-	for c in category:
-		cat = c.serialize
-		item = session.query(Item).filter_by(category_id = c.id).order_by(desc(Item.id))
-		items = []
-		for i in item:
-			items.append(i.serialize)
-		cat['items'] = items
-		categories.append(cat)
-	return jsonify(Categories = categories)
+    categories = []
+    for c in category:
+        cat = c.serialize
+        item = session.query(Item).filter_by(category_id = c.id).order_by(desc(Item.id))
+        items = []
+        for i in item:
+            print "id="+i.id
+            items.append(i.serialize)
+        cat['items'] = items
+        categories.append(cat)
+    return jsonify(Categories = categories)
 
+@app.route('/catalog/<category_id>/<item_id>/JSON')
+def ItemJSON():
+    """JSON for aritrary item"""
+    category = session.query(Category).filter_by(category_id).one()
+    items = session.query(Item).filter_by(category_id = category_id).all()
+    return jsonify(Items = [i.serialize for i in items])
 
 @app.route('/')
 def showCatalog():
     """Show all Categories and latest items"""
-	categories = session.query(Category).order_by(asc(Category.id))
-	items = session.query(Item).order_by(desc(Item.id))
-	catDict = {}
-	for cat in categories:
-		catDict[cat.id] = cat.name
-	return render_template('catalog.html', 
+    categories = session.query(Category).order_by(asc(Category.id))
+    items = session.query(Item).order_by(desc(Item.id))
+    catDict = {}
+    for cat in categories:
+        catDict[cat.id] = cat.name
+    return render_template('catalog.html', 
         categories=categories, items=items, catDict=catDict)
 
 
