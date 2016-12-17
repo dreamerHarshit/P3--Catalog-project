@@ -21,7 +21,7 @@ credentials = {}
 token_info = {}
 
 CLIENT_ID = json.loads(open('client_secret.json',
-    'r').read())['web']['client_id']
+                            'r').read())['web']['client_id']
 # This is the path to the uploads
 UPLOAD_FOLDER = 'images/'
 # Extension we are accepting to be uploaded
@@ -35,7 +35,10 @@ session = DBSession()
 
 
 def createUser(login_session):
-    newuser = User(name = login_session['username'],email = login_session['email'],picture = login_session['picture'])
+    newuser = User(
+        name=login_session['username'],
+        email=login_session['email'],
+        picture=login_session['picture'])
     session.add(newuser)
     session.commit()
     user = session.query(User).filter_by(email=login_session['email']).one()
@@ -43,43 +46,44 @@ def createUser(login_session):
 
 
 def getuserInfo(user_id):
-		"""gets user based on user_id"""
-		user = session.query(User).filter_by(id=user_id).one()
-		return user
+    """gets user based on user_id"""
+    user = session.query(User).filter_by(id=user_id).one()
+    return user
 
 
 def getUserID(email):
-	"""get user_id by email address"""
-	try:
-		user = session.query(User).filter_by(email=email).one()
-		return user.id
-	except:
-		return None
-#Create a state token to prevent request forgery.
-#Store it in the session for later validation.
+    """get user_id by email address"""
+    try:
+        user = session.query(User).filter_by(email=email).one()
+        return user.id
+    except:
+        return None
+# Create a state token to prevent request forgery.
+# Store it in the session for later validation.
 
 
 @app.route('/login')
 def showLogin():
-	"""Route for rendering login screen"""
-	state = ''.join(random.choice(string.ascii_uppercase + string.digits)
-		for x in xrange(32))
-	login_session['state'] = state
-	return render_template("login.html", STATE=state)
+    """Route for rendering login screen"""
+    state = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                    for x in xrange(32))
+    login_session['state'] = state
+    return render_template("login.html", STATE=state)
 
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
     """coonection using google+"""
     code = request.data
-    auth_config = json.loads(open('client_secret.json','r').read())['web']
+    auth_config = json.loads(open('client_secret.json', 'r').read())['web']
 
     try:
-        oauth_flow =flow_from_clientsecrets('client_secret.json', scope='')
+        oauth_flow = flow_from_clientsecrets('client_secret.json', scope='')
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(code)
     except FlowExchangeError:
-        response = make_response(json.dumps('Failed to upgrade the authorization code.'),401)
+        response = make_response(
+            json.dumps('Failed to upgrade the authorization code.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -95,12 +99,14 @@ def gconnect():
     gplus_id = credentials.id_token['sub']
     # Verify user id's match
     if result['user_id'] != gplus_id:
-        response = make_response(json.dumps("Token's user_id doesn't match \given user ID"), 401)
+        response = make_response(
+            json.dumps("Token's user_id doesn't match \given user ID"), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
     # verify that the access token is valid for this app
     if result['issued_to'] != auth_config['client_id']:
-        response = make_response(json.dumps("Token's client id doesn't \match apps"), 401)
+        response = make_response(
+            json.dumps("Token's client id doesn't \match apps"), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
     # Check to see if user is already logged in
@@ -115,10 +121,9 @@ def gconnect():
     # store the access token in the session for later use
     login_session['credentials'] = credentials.access_token
     login_session['gplus_id'] = gplus_id
-    
+
     # get user info
     userinfo_url = 'https://www.googleapis.com/oauth2/v1/userinfo'
-    userinfo_url = auth_config["userinfo_url"]
     params = {'access_token': credentials.access_token, 'alt': 'json'}
     answer = requests.get(userinfo_url, params=params)
 
@@ -150,6 +155,7 @@ def gdisconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
+
 @app.route('/disconnect')
 def disconnect():
     """Logout method for destroying session based on the provider used"""
@@ -166,7 +172,7 @@ def disconnect():
         flash("You have successfully been logged out.")
     else:
         flash("You were not logged in")
-    return redirect(url_for('home'))        
+    return redirect(url_for('home'))
 
 
 @app.route('/catalog.json')
@@ -176,21 +182,26 @@ def CategoryJSON():
     categories = []
     for c in category:
         cat = c.serialize
-        item = session.query(Item).filter_by(category_id = c.id).order_by(desc(Item.id))
+        item = session.query(Item).filter_by(
+            category_id=c.id).order_by(
+            desc(
+                Item.id))
         items = []
         for i in item:
-            print "id="+i.id
+            print "id=" + i.id
             items.append(i.serialize)
         cat['items'] = items
         categories.append(cat)
-    return jsonify(Categories = categories)
+    return jsonify(Categories=categories)
+
 
 @app.route('/catalog/<category_id>/<item_id>/JSON')
 def ItemJSON():
     """JSON for aritrary item"""
     category = session.query(Category).filter_by(category_id).one()
-    items = session.query(Item).filter_by(category_id = category_id).all()
-    return jsonify(Items = [i.serialize for i in items])
+    items = session.query(Item).filter_by(category_id=category_id).all()
+    return jsonify(Items=[i.serialize for i in items])
+
 
 @app.route('/')
 def showCatalog():
@@ -200,8 +211,8 @@ def showCatalog():
     catDict = {}
     for cat in categories:
         catDict[cat.id] = cat.name
-    return render_template('catalog.html', 
-        categories=categories, items=items, catDict=catDict)
+    return render_template('catalog.html',
+                           categories=categories, items=items, catDict=catDict)
 
 
 @app.route('/catalog/<category_name>/items/')
@@ -213,7 +224,12 @@ def showItems(category_name):
     items = session.query(Item).filter_by(
         category_id=category.id).all()
     itemCount = len(items)
-    return render_template('items.html', items=items, category=category, itemCount=itemCount, categories=categories)
+    return render_template(
+        'items.html',
+        items=items,
+        category=category,
+        itemCount=itemCount,
+        categories=categories)
 
 
 @app.route('/catalog/<category_name>/<item_name>/')
@@ -223,9 +239,14 @@ def showItem(item_name, category_name):
     category_name = category_name.replace('%20', ' ')
     print category_name
     category = session.query(Category).filter_by(name=category_name).one()
-    item = session.query(Item).filter_by(name=item_name, category_id=category.id).one()
+    item = session.query(Item).filter_by(
+        name=item_name, category_id=category.id).one()
     creator = getuserInfo(item.user_id)
-    return render_template('display_item.html', item=item, category=category, creator=creator)
+    return render_template(
+        'display_item.html',
+        item=item,
+        category=category,
+        creator=creator)
 
 
 @app.route('/catalog/new/', methods=['GET', 'POST'])
@@ -234,8 +255,11 @@ def newItem():
     if 'username' not in login_session:
         return redirect('/login')
     elif request.method == 'POST':
-        newItem = Item(name=request.form['name'], description=request.form['description'], category_id=request.form[
-                           'category_id'], user_id=login_session['user_id'])
+        newItem = Item(
+            name=request.form['name'],
+            description=request.form['description'],
+            category_id=request.form['category_id'],
+            user_id=login_session['user_id'])
         session.add(newItem)
         session.commit()
         flash('New Item %s Successfully Created' % (newItem.name))
@@ -245,7 +269,11 @@ def newItem():
         return render_template('item_new.html', categories=categories)
 
 
-@app.route('/catalog/<category_name>/<item_name>/edit', methods=['GET', 'POST'])
+@app.route(
+    '/catalog/<category_name>/<item_name>/edit',
+    methods=[
+        'GET',
+        'POST'])
 def editItem(item_name, category_name):
     """Handler to Edit a menu item"""
     if 'username' not in login_session:
@@ -269,10 +297,18 @@ def editItem(item_name, category_name):
         flash('Item Successfully Edited')
         return redirect(url_for('showCatalog'))
     else:
-        return render_template('item_edit.html', category_name=category_name, item=editedItem, categories=categories)
+        return render_template(
+            'item_edit.html',
+            category_name=category_name,
+            item=editedItem,
+            categories=categories)
 
 
-@app.route('/catalog/<category_name>/<item_name>/delete', methods=['GET', 'POST'])
+@app.route(
+    '/catalog/<category_name>/<item_name>/delete',
+    methods=[
+        'GET',
+        'POST'])
 def deleteItem(item_name, category_name):
     """Handler to Delete a menu item"""
     if 'username' not in login_session:
@@ -290,7 +326,7 @@ def deleteItem(item_name, category_name):
         return redirect('/')
     else:
         return render_template('item_delete.html',
-            item=itemToDelete, category_name=category_name)
+                               item=itemToDelete, category_name=category_name)
 
 if __name__ == '__main__':
     app.debug = True
